@@ -1,0 +1,179 @@
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
+from database import db, Product, Admin
+import urllib.parse
+import os
+from dotenv import load_dotenv
+from functools import wraps
+
+load_dotenv()
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ecommerce.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+# Telegram Configuration
+TELEGRAM_USERNAME = 'visa_0191'  # Telegram username without @
+
+# Create tables
+with app.app_context():
+    db.create_all()
+    
+    # Create default admin if not exists
+    if not Admin.query.filter_by(username='admin').first():
+        admin = Admin(username='admin', password='admin123')
+        db.session.add(admin)
+        db.session.commit()
+        print("Default admin created - Username: admin, Password: admin123")
+
+# Admin login required decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_id' not in session:
+            flash('សូមចូលប្រើប្រាស់ជាមុនសិន')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ====================== User Routes ======================
+
+@app.route('/')
+def index():
+    """ទំព័រដើមបង្ហាញទំនិញទាំងអស់"""
+    products = Product.query.all()
+    return render_template('index.html', products=products)
+
+@app.route('/buy/<int:product_id>')
+def buy_now(product_id):
+    """ទិញទំនិញភ្លាមៗ ហើយបើក Telegram"""
+    product = Product.query.get_or_404(product_id)
+    
+    # Перевіряємо наявність товару
+    if product.stock <= 0:
+        flash('ទំនិញនេះអស់ស្តុកហើយ')
+        return redirect(url_for('index'))
+    
+    # Create message for Telegram
+    message = f"សួស្តី! ខ្ញុំចង់ទិញទំនិញ: {product.name}\nតម្លៃ: ${product.price}\nសូមណែនាំអំពីការបង់ប្រាក់ និងការដឹកជញ្ជូនផង។"
+    
+    # Encode message for URL
+    encoded_message = urllib.parse.quote(message)
+    
+    # Create Telegram direct link
+    telegram_link = f"https://t.me/{TELEGRAM_USERNAME}?text={encoded_message}"
+    
+    # Redirect directly to Telegram
+    return redirect(telegram_link)
+
+# ====================== Admin Routes ======================
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """ទំព័រចូលប្រើប្រាស់សម្រាប់ Admin"""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        admin = Admin.query.filter_by(username=username, password=password).first()
+        
+        if admin:
+            session['admin_id'] = admin.id
+            session['admin_username'] = admin.username
+            flash('ចូលប្រើប្រាស់ដោយជោគជ័យ')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ')
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    """ចាកចេញពីប្រព័ន្ធ"""
+    session.pop('admin_id', None)
+    session.pop('admin_username', None)
+    flash('អ្នកបានចាកចេញពីប្រព័ន្ធដោយជោគជ័យ')
+    return redirect(url_for('admin_login'))
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    """ផ្ទាំងគ្រប់គ្រងសម្រាប់ Admin"""
+    products = Product.query.all()
+    return render_template('admin_dashboard.html', products=products, admin_username=session.get('admin_username'))
+
+@app.route('/admin/product/add', methods=['POST'])
+@admin_required
+def add_product():
+    """បន្ថែមទំនិញថ្មី"""
+    name = request.form['name']
+    price = float(request.form['price'])
+    stock = int(request.form['stock'])
+    image_url = request.form['image_url']
+    
+    # Validate inputs
+    if not name or price <= 0 or stock < 0:
+        flash('សូមបញ្ចូលព័ត៌មានឲ្យបានត្រឹមត្រូវ')
+        return redirect(url_for('admin_dashboard'))
+    
+    product = Product(name=name, price=price, stock=stock, image_url=image_url)
+    db.session.add(product)
+    db.session.commit()
+    
+    flash(f'បន្ថែមទំនិញ "{name}" ដោយជោគជ័យ')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/product/edit/<int:product_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_product(product_id):
+    """កែប្រែព័ត៌មានទំនិញ"""
+    product = Product.query.get_or_404(product_id)
+    
+    if request.method == 'POST':
+        product.name = request.form['name']
+        product.price = float(request.form['price'])
+        product.stock = int(request.form['stock'])
+        product.image_url = request.form['image_url']
+        
+        db.session.commit()
+        flash(f'កែប្រែទំនិញ "{product.name}" ដោយជោគជ័យ')
+        return redirect(url_for('admin_dashboard'))
+    
+    return render_template('admin_edit_product.html', product=product)
+
+@app.route('/admin/product/delete/<int:product_id>', methods=['POST'])
+@admin_required
+def delete_product(product_id):
+    """លុបទំនិញ"""
+    product = Product.query.get_or_404(product_id)
+    product_name = product.name
+    
+    db.session.delete(product)
+    db.session.commit()
+    
+    flash(f'លុបទំនិញ "{product_name}" ដោយជោគជ័យ')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/api/admin/product/update-stock', methods=['POST'])
+@admin_required
+def update_stock():
+    """API សម្រាប់ធ្វើបច្ចុប្បន្នភាពស្តុកតាម Real-time"""
+    data = request.json
+    product = Product.query.get(data['product_id'])
+    
+    if product:
+        old_stock = product.stock
+        product.stock = data['stock']
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'បានធ្វើបច្ចុប្បន្នភាពស្តុកពី {old_stock} ទៅ {product.stock}'
+        })
+    
+    return jsonify({'success': False, 'error': 'រកមិនឃើញទំនិញ'}), 404
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
