@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ផ្ទាំងគ្រប់គ្រង</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Kantumruy Pro', sans-serif; }
+        
+        .table-row-hover:hover {
+            background-color: #f9fafb;
+        }
+        
+        .stock-input {
+            transition: all 0.3s ease;
+        }
+        
+        .stock-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-crown text-2xl"></i>
+                    <span class="text-2xl font-bold">Admin Dashboard</span>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center space-x-2 bg-white bg-opacity-20 px-4 py-2 rounded-lg">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{ admin_username }}</span>
+                    </div>
+                    
+                    <a href="/" class="hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-lg transition flex items-center">
+                        <i class="fas fa-home mr-2"></i>
+                        ទំព័រដើម
+                    </a>
+                    
+                    <a href="/admin/logout" class="hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-lg transition flex items-center">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        ចាកចេញ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg flex items-center fade-in">
+                        <i class="fas fa-check-circle mr-3 text-green-500"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm">ទំនិញសរុប</p>
+                        <p class="text-3xl font-bold text-gray-800">{{ products|length }}</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-box text-2xl text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm">ស្តុកសរុប</p>
+                        <p class="text-3xl font-bold text-gray-800">{{ products|sum(attribute='stock') }}</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-warehouse text-2xl text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm">តម្លៃមធ្យម</p>
+                        <p class="text-3xl font-bold text-gray-800">
+                            ${{ "%.2f"|format(products|map(attribute='price')|sum / products|length if products else 0) }}
+                        </p>
+                    </div>
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-chart-line text-2xl text-yellow-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm">អស់ស្តុក</p>
+                        <p class="text-3xl font-bold text-gray-800">{{ products|selectattr('stock', 'equalto', 0)|list|length }}</p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-2xl text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Form -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8 fade-in">
+            <div class="flex items-center mb-6">
+                <div class="bg-green-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-plus-circle text-2xl text-green-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">បន្ថែមទំនិញថ្មី</h2>
+            </div>
+            
+            <form method="POST" action="/admin/product/add" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">ឈ្មោះទំនិញ</label>
+                    <input type="text" name="name" placeholder="បញ្ចូលឈ្មោះទំនិញ" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">តម្លៃ ($)</label>
+                    <input type="number" name="price" placeholder="0.00" step="0.01" min="0" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">ចំនួនស្តុក</label>
+                    <input type="number" name="stock" placeholder="0" min="0" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">URL រូបភាព</label>
+                    <input type="url" name="image_url" placeholder="https://example.com/image.jpg"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div class="md:col-span-2 lg:col-span-4">
+                    <button type="submit" 
+                            class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition duration-300 font-bold flex items-center justify-center">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        បន្ថែមទំនិញ
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Products List -->
+        <div class="bg-white rounded-xl shadow-lg p-8 fade-in">
+            <div class="flex items-center mb-6">
+                <div class="bg-blue-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-list text-2xl text-blue-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">បញ្ជីទំនិញ ({{ products|length }})</h2>
+            </div>
+            
+            {% if products %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">រូបភាព</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">ឈ្មោះ</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">តម្លៃ</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">ស្តុក</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">ស្ថានភាព</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">សកម្មភាព</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for product in products %}
+                        <tr class="table-row-hover transition">
+                            <td class="px-6 py-4">
+                                <img src="{{ product.image_url or 'https://via.placeholder.com/50x50' }}" 
+                                     alt="{{ product.name }}" 
+                                     class="w-12 h-12 object-cover rounded-lg shadow"
+                                     onerror="this.src='https://via.placeholder.com/50x50?text=Error'">
+                            </td>
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ product.name }}</td>
+                            <td class="px-6 py-4 font-bold text-blue-600">${{ "%.2f"|format(product.price) }}</td>
+                            <td class="px-6 py-4">
+                                <input type="number" 
+                                       value="{{ product.stock }}" 
+                                       min="0"
+                                       onchange="updateStock({{ product.id }}, this.value)"
+                                       class="stock-input w-20 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-center">
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if product.stock > 0 %}
+                                    {% if product.stock <= 5 %}
+                                    <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold">
+                                        ជិតអស់
+                                    </span>
+                                    {% else %}
+                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
+                                        មានស្តុក
+                                    </span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold">
+                                    អស់ស្តុក
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex space-x-2">
+                                    <a href="/admin/product/edit/{{ product.id }}" 
+                                       class="bg-blue-100 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-200 transition inline-flex items-center">
+                                        <i class="fas fa-edit mr-1"></i>
+                                        កែប្រែ
+                                    </a>
+                                    <form method="POST" action="/admin/product/delete/{{ product.id }}" 
+                                          onsubmit="return confirm('តើអ្នកប្រាកដថាចង់លុបទំនិញ "{{ product.name }}" នេះទេ?')">
+                                        <button type="submit" 
+                                                class="bg-red-100 text-red-600 px-3 py-2 rounded-lg hover:bg-red-200 transition inline-flex items-center">
+                                            <i class="fas fa-trash-alt mr-1"></i>
+                                            លុប
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-box-open text-5xl text-gray-400 mb-4"></i>
+                <p class="text-gray-500 text-lg">មិនទាន់មានទំនិញនៅឡើយទេ</p>
+                <p class="text-gray-400">សូមបន្ថែមទំនិញដោយប្រើទម្រង់ខាងលើ</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        async function updateStock(productId, newStock) {
+            // Show loading state
+            const button = event.target;
+            const originalValue = button.value;
+            
+            try {
+                const response = await fetch('/api/admin/product/update-stock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        stock: parseInt(newStock)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center';
+                    notification.innerHTML = '<i class="fas fa-check-circle mr-2"></i>' + result.message;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                    
+                    // Reload page after 1 second to update status
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    alert('មានបញ្ហាក្នុងការធ្វើបច្ចុប្បន្នភាព៖ ' + result.error);
+                    // Reset to original value
+                    event.target.value = originalValue;
+                }
+            } catch (error) {
+                alert('មានបញ្ហាតភ្ជាប់បណ្តាញ');
+                event.target.value = originalValue;
+            }
+        }
+        
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashMessages = document.querySelectorAll('.bg-green-100');
+            flashMessages.forEach(msg => {
+                msg.style.transition = 'opacity 0.5s';
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 500);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

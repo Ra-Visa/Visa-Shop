@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>កែប្រែទំនិញ - {{ product.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Kantumruy Pro', sans-serif; }
+        
+        .edit-card {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .preview-image {
+            transition: all 0.3s ease;
+        }
+        
+        .preview-image:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="edit-card max-w-2xl w-full">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+            <div class="flex items-center">
+                <div class="bg-white bg-opacity-20 p-3 rounded-xl mr-4">
+                    <i class="fas fa-edit text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">កែប្រែទំនិញ</h1>
+                    <p class="text-blue-100">កែប្រែព័ត៌មានទំនិញ: {{ product.name }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form -->
+        <div class="bg-white rounded-b-2xl shadow-2xl p-8">
+            <form method="POST" class="space-y-6">
+                <!-- Current Image Preview -->
+                {% if product.image_url %}
+                <div class="mb-6 text-center">
+                    <label class="block text-gray-700 font-medium mb-3 text-left">រូបភាពបច្ចុប្បន្ន</label>
+                    <img src="{{ product.image_url }}" 
+                         alt="{{ product.name }}" 
+                         class="preview-image w-48 h-48 object-cover rounded-xl mx-auto shadow-lg border-4 border-white"
+                         onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                </div>
+                {% endif %}
+                
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">
+                        <i class="fas fa-tag mr-2 text-blue-500"></i>ឈ្មោះទំនិញ
+                    </label>
+                    <input type="text" name="name" value="{{ product.name }}" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">
+                            <i class="fas fa-dollar-sign mr-2 text-blue-500"></i>តម្លៃ
+                        </label>
+                        <input type="number" name="price" value="{{ product.price }}" step="0.01" min="0" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">
+                            <i class="fas fa-boxes mr-2 text-blue-500"></i>ចំនួនស្តុក
+                        </label>
+                        <input type="number" name="stock" value="{{ product.stock }}" min="0" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">
+                        <i class="fas fa-image mr-2 text-blue-500"></i>URL រូបភាព
+                    </label>
+                    <input type="url" name="image_url" value="{{ product.image_url }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                           placeholder="https://example.com/image.jpg">
+                    <p class="text-sm text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        ទុកចោលទទេ ប្រសិនបើគ្មានរូបភាព
+                    </p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex space-x-4 pt-4">
+                    <button type="submit" 
+                            class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300 font-bold flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>
+                        រក្សាទុក
+                    </button>
+                    
+                    <a href="/admin/dashboard" 
+                       class="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition duration-300 font-bold flex items-center justify-center">
+                        <i class="fas fa-times mr-2"></i>
+                        បោះបង់
+                    </a>
+                </div>
+            </form>
+            
+            <!-- Product Info -->
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-semibold text-gray-700 mb-2 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    ព័ត៌មានបន្ថែម
+                </h3>
+                <p class="text-sm text-gray-600">
+                    <span class="font-medium">ID:</span> {{ product.id }}<br>
+                    <span class="font-medium">បង្កើតនៅ:</span> {{ product.created_at.strftime('%d/%m/%Y %H:%M') if product.created_at else 'មិនមាន' }}
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
