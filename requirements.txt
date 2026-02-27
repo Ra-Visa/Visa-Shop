@@ -1,0 +1,28 @@
+# Core Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Database
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Security
+itsdangerous==2.1.2
+MarkupSafe==2.1.3
+blinker==1.7.0
+
+# HTTP Requests (សម្រាប់ Telegram Bot API - បើចង់ប្រើ)
+requests==2.31.0
+urllib3==2.1.0
+certifi==2023.11.17
+charset-normalizer==3.3.2
+idna==3.6
+
+# Image Processing (ស្រេចចិត្ត - បើចង់ដំណើរការរូបភាព)
+Pillow==10.1.0
+
+# Development Tools (សម្រាប់តែ Development)
+python-dotenv==1.0.0
